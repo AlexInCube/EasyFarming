@@ -1,6 +1,7 @@
 package com.alexincube.easyfarming.commands;
 
 import com.alexincube.easyfarming.easyfarming;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -43,13 +44,16 @@ public class CommandHandler implements CommandExecutor{
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) return true;
-        if (!(sender instanceof Player p)) return true;
 
         switch (args[0]) {
             case ("toggle") -> {
-                if (!sender.hasPermission("ef.replanting")){
-                    sendPluginMessage("messages.no-permission",p);
-                    return true;
+                if (!(sender instanceof Player p)) return true;
+
+                if (config.getBoolean("plugin-required-permission")){
+                    if (!sender.hasPermission("ef.replanting")){
+                        sendPluginMessage("messages.no-permission",p);
+                        return true;
+                    }
                 }
 
                 PersistentDataContainer data = p.getPersistentDataContainer();
@@ -69,9 +73,22 @@ public class CommandHandler implements CommandExecutor{
             }
 
             case ("reload") -> {
-                if (!sender.isOp()) {sendPluginMessage("messages.no-permission", p);  return true;}
-                plugin.reloadConfig();
-                sendPluginMessage("messages.config-reloaded", p);
+                if (sender instanceof Player) {
+                    Player player = (Player) sender;
+
+                    if (sender.isOp()){
+                        plugin.reloadConfig();
+                        config = plugin.getConfig();
+                        sendPluginMessage("messages.config-reloaded", player);
+                        Bukkit.getLogger().info("EasyFarming config is reloaded!");
+                    }else{
+                        sendPluginMessage("messages.no-permission", player);
+                    }
+                }else if (sender.isOp()){
+                    plugin.reloadConfig();
+                    config = plugin.getConfig();
+                    Bukkit.getLogger().info("EasyFarming config is reloaded!");
+                }
             }
 
             default -> {

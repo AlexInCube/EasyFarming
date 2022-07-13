@@ -39,8 +39,14 @@ public class ReplantingListener implements Listener {
         FileConfiguration config = pluginInstance.getConfig();
         if (!config.getBoolean("crop-replant-requires-hoe")) return;
 
-        // If player enable replanting
         Player player = event.getPlayer();
+        if (config.getBoolean("plugin-required-permission")) {
+            if (!player.hasPermission("ef.replanting")) {
+                return;
+            }
+        }
+
+        // If player enable replanting
         if(!isPlayerEnableReplanting(player)) return;
         // If player has hoe
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
@@ -52,9 +58,6 @@ public class ReplantingListener implements Listener {
         BlockData brokenBlockData = brokenBlock.getBlockData();
         Material brokenMaterial = brokenBlockData.getMaterial();
         if (!cropsAndSeeds.containsKey(brokenMaterial)) return;
-
-
-
 
         // If crop is grown
         if (!isFullyGrown(brokenBlock)) return;
@@ -78,6 +81,13 @@ public class ReplantingListener implements Listener {
         if (config.getBoolean("crop-replant-requires-hoe")) return;
 
         Player player = event.getPlayer();
+
+        if (config.getBoolean("plugin-required-permission")) {
+            if (!player.hasPermission("ef.replanting")) {
+                return;
+            }
+        }
+
         if(!isPlayerEnableReplanting(player))return;
 
         Block interactedBlock = event.getClickedBlock();
