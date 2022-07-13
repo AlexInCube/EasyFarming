@@ -13,7 +13,10 @@ public class CommandTabCompletion implements TabCompleter {
         if(args.length == 1){
             List<String> commands = new ArrayList<>();
             commands.add("toggle");
-            commands.add("reload");
+            if (sender.isOp()){
+                commands.add("reload");
+            }
+
             return commands;
         }
         return null;

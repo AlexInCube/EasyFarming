@@ -11,6 +11,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -24,64 +25,67 @@ import org.bukkit.plugin.Plugin;
 import java.util.HashMap;
 
 public class ReplantingListener implements Listener {
-    HashMap<Material, Material> cropsAndSeeds = new HashMap<>();
+    private final HashMap<Material, Material> cropsAndSeeds = new HashMap<>(){{
+        put(Material.WHEAT, Material.WHEAT_SEEDS);
+        put(Material.CARROTS, Material.CARROT);
+        put(Material.BEETROOTS, Material.BEETROOT_SEEDS);
+        put(Material.POTATOES, Material.POTATO);
+        put(Material.NETHER_WART, Material.NETHER_WART);
+    }};
     Plugin pluginInstance = easyfarming.getInstance();
-    FileConfiguration config = pluginInstance.getConfig();
 
-    public ReplantingListener(){
-        cropsAndSeeds.put(Material.WHEAT, Material.WHEAT_SEEDS);
-        cropsAndSeeds.put(Material.CARROTS, Material.CARROT);
-        cropsAndSeeds.put(Material.BEETROOTS, Material.BEETROOT_SEEDS);
-        cropsAndSeeds.put(Material.POTATOES, Material.POTATO);
-    }
-
-    @EventHandler
+    @EventHandler (priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void BlockBreakEvent(BlockBreakEvent event){
-        Player player = event.getPlayer();
+        FileConfiguration config = pluginInstance.getConfig();
+        if (!config.getBoolean("crop-replant-requires-hoe")) return;
 
-        if(!isPlayerEnableReplanting(player))return;
+        // If player enable replanting
+        Player player = event.getPlayer();
+        if(!isPlayerEnableReplanting(player)) return;
+        // If player has hoe
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+        Material toolMaterial = itemInHand.getType();
+        if (!toolMaterial.toString().endsWith("HOE")) return;
+
+        // If block is crop
         Block brokenBlock = event.getBlock();
         BlockData brokenBlockData = brokenBlock.getBlockData();
-        // If block is crop
-        if (!(brokenBlockData instanceof Ageable)) return;
-
         Material brokenMaterial = brokenBlockData.getMaterial();
-        Location loc = brokenBlock.getLocation();
+        if (!cropsAndSeeds.containsKey(brokenMaterial)) return;
+
+
+
 
         // If crop is grown
         if (!isFullyGrown(brokenBlock)) return;
-
-        if (config.getBoolean("crop-replant-requires-hoe")){
-            ItemStack itemInHand = player.getInventory().getItemInMainHand();
-            Material toolMaterial = itemInHand.getType();
-            if (!toolMaterial.toString().endsWith("HOE")) return;
-        }
-
+        // Get crop seed
         Material seed = getSeedMaterial(brokenMaterial);
-
         if (seed == null) return;
-        //If player have seeds
+        //If player have seeds in inventory
         if (!isItemInInventory(player, seed)) return;
 
         consumeSeed(player, seed);
-
+        Location loc = brokenBlock.getLocation();
         //Set broken crop to new the same crop
         Bukkit.getScheduler().runTaskLater(easyfarming.getInstance(), () -> loc.getBlock().setType(brokenMaterial), 2);
     }
 
     @EventHandler
     public void PlayerInteractEvent (PlayerInteractEvent event){
-        Player player = event.getPlayer();
-
-        if(!isPlayerEnableReplanting(player))return;
         if (!event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) return;
 
-        Block interactedBlock = event.getClickedBlock();
+        FileConfiguration config = pluginInstance.getConfig();
+        if (config.getBoolean("crop-replant-requires-hoe")) return;
 
+        Player player = event.getPlayer();
+        if(!isPlayerEnableReplanting(player))return;
+
+        Block interactedBlock = event.getClickedBlock();
         if (interactedBlock == null) return;
         BlockData interactedBlockData = interactedBlock.getBlockData();
 
-        if (!(interactedBlockData instanceof Ageable)) return;
+        Material brokenMaterial = interactedBlockData.getMaterial();
+        if (!cropsAndSeeds.containsKey(brokenMaterial)) return;
         if (!isFullyGrown(interactedBlock)) return;
 
         if (config.getBoolean("crop-harvesting-prevent-afk-farm")){
@@ -117,11 +121,7 @@ public class ReplantingListener implements Listener {
 
         if (data.has(enableField, PersistentDataType.BYTE)){
             Byte ef_enable = data.get(enableField, PersistentDataType.BYTE);
-            if (ef_enable == 1){
-                return true;
-            }else{
-                return false;
-            }
+            return ef_enable == 1;
         }
         return false;
     }

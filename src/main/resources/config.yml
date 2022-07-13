@@ -2,5 +2,12 @@
 crop-replanting-and-harvesting-by-default: true
 # Запрещает с помощью костной муки и правой кнопки мыши бесконечно нажимать на растения
 crop-harvesting-prevent-afk-farm: true
-# Пересадка растений на ЛКМ, работает только при наличии мотыги в руках.
+# Пересадка растений будет работать только на ЛКМ и при наличии мотыги в руках.
 crop-replant-requires-hoe: false
+
+messages:
+  prefix: "#52d447[EasyFarming]#FFFFFF "
+  replanting-not-works: Теперь на вас не действует пересаживание растений
+  replanting-works: Теперь вы можете пересаживать растения
+  no-permission: У вас недостаточно прав
+  config-reloaded: Конфиг перезагружен
