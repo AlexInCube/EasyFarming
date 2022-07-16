@@ -1,10 +1,7 @@
 package com.alexincube.easyfarming.listeners;
 
 import com.alexincube.easyfarming.easyfarming;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
@@ -17,12 +14,12 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 import java.util.HashMap;
+import java.util.Iterator;
 
 public class ReplantingListener implements Listener {
     private final HashMap<Material, Material> cropsAndSeeds = new HashMap<>(){{
@@ -64,13 +61,11 @@ public class ReplantingListener implements Listener {
         // Get crop seed
         Material seed = getSeedMaterial(brokenMaterial);
         if (seed == null) return;
-        //If player have seeds in inventory
-        if (!isItemInInventory(player, seed)) return;
 
-        consumeSeed(player, seed);
+        consumeSeed(player, seed, brokenBlock);
         Location loc = brokenBlock.getLocation();
         //Set broken crop to new the same crop
-        Bukkit.getScheduler().runTaskLater(easyfarming.getInstance(), () -> loc.getBlock().setType(brokenMaterial), 2);
+        Bukkit.getScheduler().runTaskLater(easyfarming.getInstance(), () -> loc.getBlock().setType(brokenMaterial), 1);
     }
 
     @EventHandler
@@ -110,18 +105,12 @@ public class ReplantingListener implements Listener {
         Material seed = getSeedMaterial(interactedMaterial);
 
         if (seed == null) return;
-        //If player have seeds
-        if (!isItemInInventory(player, seed)) return;
 
-        consumeSeed(player, seed);
+        consumeSeed(player, seed, interactedBlock);
 
         player.swingMainHand();
 
-        Location loc = interactedBlock.getLocation();
-
-        if(interactedBlock.breakNaturally()){
-            Bukkit.getScheduler().runTaskLater(pluginInstance, () -> loc.getBlock().setType(interactedMaterial), 2);
-        }
+        interactedBlock.setType(interactedMaterial);
     }
 
     public boolean isPlayerEnableReplanting(Player p){
@@ -144,33 +133,28 @@ public class ReplantingListener implements Listener {
         return cropsAndSeeds.get(cropType);
     }
 
-    public boolean isItemInInventory(Player player, Material cropType){
-        PlayerInventory inventory = player.getInventory();
-        return inventory.contains(cropType);
-    }
+    public void consumeSeed(Player player, Material seed, Block crop){
+        World world = player.getWorld();
+        Location loc = crop.getLocation();
 
-    public void consumeSeed(Player player, Material seedType){
-        int itemIndexLocation = -1;
-        ItemStack currentItems;
-        PlayerInventory inventory = player.getInventory();
+        ItemStack heldItem = player.getInventory().getItemInMainHand();
+        Iterator<ItemStack> drop = crop.getDrops(heldItem).iterator();
 
-        for (int slotIndex = 0; slotIndex < inventory.getSize(); slotIndex++){
-            currentItems = inventory.getItem(slotIndex);
+        boolean removedItem = false;
+        while(drop.hasNext()) {
+            ItemStack item = drop.next();
 
-            if (currentItems == null) continue;
+            if (item.getType().equals(Material.AIR)) continue;
+            if (!removedItem && item.getType().equals(seed)) {
+                Bukkit.getLogger().info("seed total drops: " + item.getAmount());
+                item.setAmount(item.getAmount() - 1);
 
-            if (currentItems.getType() == seedType){
-                itemIndexLocation = slotIndex;
-                break;
+                removedItem = true;
             }
+            if (item.getAmount() < 1) continue;
+            world.dropItemNaturally(loc, item);
         }
 
-        if (itemIndexLocation != -1){
-            ItemStack detectedItemStack = inventory.getItem(itemIndexLocation);
-            if (detectedItemStack != null){
-                int itemAmount = detectedItemStack.getAmount();
-                detectedItemStack.setAmount(itemAmount - 1);
-            }
-        }
+
     }
 }
