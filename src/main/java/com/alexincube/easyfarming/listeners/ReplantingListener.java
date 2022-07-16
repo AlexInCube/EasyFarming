@@ -146,7 +146,7 @@ public class ReplantingListener implements Listener {
 
             if (item.getType().equals(Material.AIR)) continue;
             if (!removedItem && item.getType().equals(seed)) {
-                Bukkit.getLogger().info("seed total drops: " + item.getAmount());
+                //Bukkit.getLogger().info("seed total drops: " + item.getAmount());
                 item.setAmount(item.getAmount() - 1);
 
                 removedItem = true;
